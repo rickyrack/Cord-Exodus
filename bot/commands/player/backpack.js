@@ -2,6 +2,7 @@ const { EmbedBuilder } = require('@discordjs/builders');
 const { SlashCommandBuilder } = require('discord.js');
 const { userCheck } = require('../../../backend/firestore/utility/user_check');
 const { getBackpack } = require('../../../backend/firestore/player/get_backpack');
+const { useResource } = require('../../../backend/firestore/utility/use_resource');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -15,7 +16,6 @@ module.exports = {
 		}
 
         const backpack = await getBackpack(user);
-        console.log(backpack);
 
         const backpackEmbed = new EmbedBuilder()
             .setTitle("Backpack")
@@ -27,9 +27,8 @@ module.exports = {
             )
         })
 
-
-
-        const message = await interaction.reply({ embeds: [backpackEmbed], fetchReply: true });
+        let message = interaction.reply({ embeds: [backpackEmbed] });
+        message = await interaction.fetchReply();
         message.react("1100250570666803200"); // back
         message.react("1100250571669241916"); // next
         message.react("1100250572965290104"); // 1
@@ -43,6 +42,34 @@ module.exports = {
         message.react("1100250618574143519"); // 9
         message.react("1100250619358494720"); // 10
 
+        const backpackFilter = (reaction, user) => {
+            const emojis = ["1100250572965290104", "1100250573820932116", "1100250574735290448", "1100250575699976263", "1100250577054736495", "1100250578422075542", "1100250616061763584", "1100250617647206510", "1100250618574143519", "1100250619358494720"];
+            return emojis.includes(reaction.emoji.id) && user.id === interaction.user.id;
+          };
 
+        const backpackCollector = message.createReactionCollector({
+            filter: backpackFilter,
+            max: 1,
+            time: 60000
+        });
+
+        backpackCollector.on("collect", (reaction, user) => {
+            let onPage = 1;
+            console.log(`collected ${reaction.emoji.name} on page ${onPage}`);
+            let itemNumber = reaction.emoji.name.length === 8
+                ? parseInt(reaction.emoji.name[7])
+                : 10;
+            selectItem(onPage, itemNumber)
+        });
+
+        backpackCollector.on("end", (collected) => {
+            console.log('backpack collector finished')
+        })
+
+        async function selectItem(page, item) {
+            console.log('selectItem function');
+            console.log(item);
+            await useResource(Object.keys(backpack)[item], user.id, false);
+        }
     },
 };

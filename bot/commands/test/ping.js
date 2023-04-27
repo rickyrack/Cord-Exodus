@@ -5,6 +5,21 @@ module.exports = {
 		.setName('ping')
 		.setDescription('Replies with Pong!'),
 	async execute(interaction) {
-		return interaction.reply('Pong!');
+		let message = await interaction.reply('Pong!');
+		message = await interaction.fetchReply();
+
+		const collectorFilter = (reaction, user) => {
+			return true;//reaction.emoji.name === '👍' && user.id === message.author.id;
+		};
+		
+		const collector = message.createReactionCollector({ time: 15000 });
+		
+		collector.on('collect', (reaction, user) => {
+			console.log(`Collected ${reaction.emoji.name} from ${user.tag}`);
+		});
+		
+		collector.on('end', collected => {
+			console.log(`Collected ${collected.size} items`);
+		});
 	},
 };
